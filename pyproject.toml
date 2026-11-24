@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepaicode-daily"
+version = "1.0.0"
+description = "DeepAI Code daily Theos grant trigger and readback"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "L0NE-6" },
+]
+dependencies = [
+  "requests>=2.31,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.6,<1",
+]
+
+[project.scripts]
+deepaicode-daily = "deepaicode_daily:main"
+
+[tool.setuptools]
+py-modules = ["deepaicode_daily"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+extend-exclude = ["__pycache__"]
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]

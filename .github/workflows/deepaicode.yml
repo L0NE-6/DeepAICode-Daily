@@ -1,0 +1,106 @@
+name: DeepAI Code Daily
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # 08:37 Beijing time (UTC+8). GitHub cron uses UTC.
+    - cron: "37 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deepaicode-daily
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: Asia/Shanghai
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt "ruff>=0.6,<1"
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall -q .
+      - run: python -m ruff check deepaicode_daily.py tests
+
+  claim:
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Shanghai
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Check credentials
+        id: credentials
+        shell: bash
+        env:
+          DEEPAI_API_KEYS: ${{ secrets.DEEPAI_API_KEYS }}
+          DEEPAI_API_KEY: ${{ secrets.DEEPAI_API_KEY }}
+        run: |
+          if [ -n "${DEEPAI_API_KEYS:-}" ] || [ -n "${DEEPAI_API_KEY:-}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=DeepAI Code Daily::Credentials detected."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=DeepAI Code Daily::No API key configured; scheduled run skipped."
+          fi
+      - name: Run DeepAI Code
+        if: steps.credentials.outputs.available == 'true'
+        env:
+          DEEPAI_API_KEYS: ${{ secrets.DEEPAI_API_KEYS }}
+          DEEPAI_API_KEY: ${{ secrets.DEEPAI_API_KEY }}
+          DEEPAI_LANE_VERSION: ${{ vars.DEEPAI_LANE_VERSION }}
+        shell: bash
+        run: |
+          set -o pipefail
+          python deepaicode_daily.py | tee deepaicode-report.jsonl
+      - name: Build JSON report
+        if: always() && steps.credentials.outputs.available == 'true'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          raw_path = Path("deepaicode-report.jsonl")
+          output_path = Path("deepaicode-report.json")
+          records = []
+          if raw_path.exists():
+              for line in raw_path.read_text(encoding="utf-8").splitlines():
+                  if line.strip():
+                      records.append(json.loads(line))
+          output_path.write_text(
+              json.dumps(records, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+      - name: Upload JSON report
+        if: always() && steps.credentials.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepaicode-report-${{ github.run_id }}
+          path: |
+            deepaicode-report.json
+            deepaicode-report.jsonl
+          if-no-files-found: warn
+          retention-days: 30
