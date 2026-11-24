@@ -18,7 +18,7 @@
 <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20%E9%9D%92%E9%BE%99-4EAA25?style=for-the-badge&logo=linux&logoColor=white" />
 <img src="https://img.shields.io/badge/License-MIT-F472B6?style=for-the-badge" />
 
-[✨ 速览](#quick-overview) · [🔐 凭据](#credentials) · [🐧 青龙](#qinglong) · [☁️ Actions](#actions) · [✅ 判据](#success) · [🚫 边界](#usage-policy) · [✦ 星轨](#star-trail)
+[✨ 速览](#quick-overview) · [🔐 凭据](#credentials) · [🐧 青龙](#qinglong) · [☁️ Actions](#actions) · [✅ 判据](#success) · [🧠 原则](#design) · [📁 目录](#directory) · [🚫 边界](#usage-policy) · [✦ 星轨](#star-trail)
 
 </div>
 
@@ -255,11 +255,63 @@ python -m ruff check deepaicode_daily.py tests
 
 ---
 
+<a id="design"></a>
+## 🧠 设计原则
+
+- **单次触发**：每个账号只请求一次 `/theos`，不通过轮询放大风控面；
+- **设备指纹真实**：优先读取本机硬件标识，只上传 SHA-256，不伪造多设备；
+- **基线可审计**：本地只保存 API Key 哈希、`refresh_at`、`granted` 和 `balance`；
+- **不伪造领取**：`granted=0` 明确报告 `GRANT_PENDING`，不把请求成功当额度到账；
+- **多账号隔离**：每个账号独立 Session、独立错误、独立基线；
+- **最小依赖**：运行时仅依赖 `requests`；
+- **敏感信息脱敏**：API Key、设备 UUID 和异常回包不进入日志与报告。
+
+---
+
 ## 🔒 隐私说明
 
 本仓库不包含任何 API Key、账号、设备 UUID、状态文件或运行日志。所有凭据均由环境变量、GitHub Secrets 或你自己的运行环境注入。
 
 请勿提交 `deepaicode-report.json`、`deepaicode-report.jsonl`、Key 文件、状态文件和完整运行日志。
+
+---
+
+<a id="directory"></a>
+## 📁 目录结构
+
+```text
+DeepAICode-Daily/
+├── .github/workflows/deepaicode.yml
+├── assets/
+│   ├── donate-alipay.jpg
+│   └── donate-wechat.png
+├── docs/
+│   ├── README.en.md
+│   ├── README.zh-Hant.md
+│   ├── README.ja.md
+│   ├── README.ko.md
+│   └── README.pt-BR.md
+├── tests/test_deepaicode_daily.py
+├── deepaicode_daily.py
+├── CHANGELOG.md
+├── LICENSE
+├── NOTICE.md
+├── THIRD_PARTY_NOTICES.md
+├── pyproject.toml
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## 📦 版本与发布
+
+- 当前版本：`v1.0.0`（2026-11-24）；
+- 每次协议、脚本或行为变化单独发布版本，历史 Release 保留；
+- Release 附带完整 ZIP、单文件脚本和 `SHA256SUMS.txt`；
+- 公开包不包含 API Key、设备 UUID、状态文件和运行日志。
+
+下载页：<https://github.com/L0NE-6/DeepAICode-Daily/releases>
 
 ---
 
@@ -278,6 +330,15 @@ python -m ruff check deepaicode_daily.py tests
 ## ⚠️ 免责声明
 
 本项目用于个人学习和合法的个人自动化。DeepAI Code 的活动规则、接口、额度口径和账号资格由服务方决定；使用前请确认对应服务条款，并自行承担账号、网络、活动和接口变化带来的风险。
+
+---
+
+## 💬 反馈与贡献
+
+- [提交 Issue](https://github.com/L0NE-6/DeepAICode-Daily/issues)
+- [发起 Pull Request](https://github.com/L0NE-6/DeepAICode-Daily/pulls)
+
+反馈问题时，请附脱敏后的 `enabled/granted/balance/refresh_at`、运行模式、Python 版本和复现步骤。不要上传真实 API Key、设备 UUID、状态文件或完整账号日志。
 
 ---
 
